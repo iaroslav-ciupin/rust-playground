@@ -68,6 +68,16 @@ impl CircularList {
         }
     }
 
+    pub fn set(&mut self, index: u32, val: i32) {
+        match self {
+            Cons(i, tail) => match index {
+                0 => *i = val,
+                _ => tail.as_ref().borrow_mut().set(index - 1, val),
+            },
+            _ => ()
+        }
+    }
+
     //
     // fn weak_next_to_string(&self) -> String {
     //     match self {
@@ -281,6 +291,47 @@ mod tests {
             let actual = test_case.l.get(test_case.i);
 
             assert_eq!(test_case.expected, actual)
+        }
+    }
+
+    #[test]
+    fn test_set() {
+        struct Case {
+            l: CircularList,
+            i: u32,
+            val: i32,
+            expected: CircularList,
+        }
+        let test_cases = vec![
+            Case {
+                l: list![],
+                i: 0,
+                val: 42,
+                expected: list![]
+            },
+            Case {
+                l: list![0],
+                i: 0,
+                val: 42,
+                expected: list![42]
+            },
+            Case {
+                l: list![1,2,3,4],
+                i: 0,
+                val: 42,
+                expected: list![1,2,3,42]
+            },
+            Case {
+                l: list![1,2,3,4],
+                i: 2,
+                val: 42,
+                expected: list![1,42,3,4]
+            },
+        ];
+        for mut test_case in test_cases.into_iter() {
+            test_case.l.set(test_case.i, test_case.val);
+
+            assert_eq!(test_case.expected, test_case.l)
         }
     }
 }
