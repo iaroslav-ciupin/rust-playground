@@ -3,6 +3,7 @@ use std::rc::{Rc, Weak};
 use std::cell::{RefCell, Ref};
 use std::fmt::{Debug, Formatter};
 use std::fmt;
+use std::borrow::BorrowMut;
 
 #[derive(Debug)]
 pub enum CircularList{
@@ -51,6 +52,20 @@ impl CircularList {
         Cons(i, Rc::new(RefCell::new(self)))
     }
 
+    pub fn head(&self) -> Option<i32> {
+        match self {
+            Nil => None,
+            Cons(i, _) => Some(*i)
+        }
+    }
+
+    pub fn tail(&self) -> Option<&Rc<RefCell<CircularList>>> {
+        match self {
+            Cons(_, tail) => Some(tail),
+            _ => None,
+        }
+    }
+
     pub fn length(&self) -> u32 {
         match self {
             Nil => 0,
@@ -78,16 +93,9 @@ impl CircularList {
         }
     }
 
-    //
-    // fn weak_next_to_string(&self) -> String {
-    //     match self {
-    //         CircularList::Nil =>
-    //             String::from(""),
-    //         CircularList::Cons(value, _, _) => {
-    //             format!("{}", value)
-    //         }
-    //     }
-    // }
+    pub fn clear(&mut self) {
+        *self = Nil
+    }
 }
 
 #[macro_export]
