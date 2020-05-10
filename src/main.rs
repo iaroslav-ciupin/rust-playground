@@ -23,4 +23,6 @@ fn main() {
 
     l2.borrow_mut().append(42);
     println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
+    l2.borrow_mut().delete_from_tail(2);
+    println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
 }

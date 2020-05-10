@@ -99,14 +99,13 @@ impl CircularList {
                 *ref_list = tail_clone
             }
         } else {
-            CircularList::delete_from_tail(ref_list, index);
+            let list: &mut CircularList = &mut ref_list.as_ref().borrow_mut();
+            list.delete_from_tail(index);
         }
     }
 
-    fn delete_from_tail(ref_list: &mut Rc<RefCell<CircularList>>, index: u32) {
-        let list: &mut CircularList = &mut ref_list.as_ref().borrow_mut();
-        match list {
-            Nil => (),
+    pub fn delete_from_tail(&mut self, index: u32) {
+        match self {
             Cons(_, tail) => match index {
                 0 => panic!("should not call with index = 0"),
                 1 => {
@@ -115,8 +114,9 @@ impl CircularList {
                         *tail = tail_clone
                     }
                 },
-                _=> CircularList::delete_from_tail(tail, index - 1)
-            }
+                _=> tail.borrow_mut().delete_from_tail(index - 1)
+            },
+            _ => ()
         }
     }
 
