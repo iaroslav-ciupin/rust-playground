@@ -20,4 +20,7 @@ fn main() {
     println!();
     println!("l1: {}, count l1: {}", l1.borrow(), Rc::strong_count(&l1));
     println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
+
+    l2.borrow_mut().append(42);
+    println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
 }

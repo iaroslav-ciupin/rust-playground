@@ -123,6 +123,15 @@ impl CircularList {
     pub fn clear(&mut self) {
         *self = Nil
     }
+
+    pub fn append(&mut self, i: i32) {
+        match self {
+            Nil => *self = Cons(i, Rc::new(RefCell::new(Nil))),
+            Cons(_, tail) => {
+                tail.borrow_mut().append(i)
+            }
+        }
+    }
 }
 
 #[macro_export]
@@ -154,22 +163,10 @@ mod tests {
             expected: &'a str
         }
         let test_cases = vec![
-            Case {
-                l: Nil,
-                expected: "nil",
-            },
-            Case {
-                l: list![1],
-                expected: "1,nil",
-            },
-            Case {
-                l: list![1,2],
-                expected: "1,2,nil",
-            },
-            Case {
-                l: list![1,2,3],
-                expected: "1,2,3,nil",
-            }
+            Case { l: Nil, expected: "nil", },
+            Case { l: list![1], expected: "1,nil", },
+            Case { l: list![1,2], expected: "1,2,nil", },
+            Case { l: list![1,2,3], expected: "1,2,3,nil", }
         ];
         for test_case in test_cases.iter() {
             let actual = format!("{}", test_case.l);
@@ -186,41 +183,13 @@ mod tests {
             expected: bool
         }
         let test_cases = vec![
-            Case {
-                l1: Nil,
-                l2: Nil,
-                expected: true,
-            },
-            Case {
-                l1: list![42],
-                l2: list![42],
-                expected: true,
-            },
-            Case {
-                l1: list![42, 777],
-                l2: list![42, 777],
-                expected: true,
-            },
-            Case {
-                l1: list![42],
-                l2: Nil,
-                expected: false,
-            },
-            Case {
-                l1: Nil,
-                l2: list![42],
-                expected: false,
-            },
-            Case {
-                l1: list![42],
-                l2: list![24],
-                expected: false,
-            },
-            Case {
-                l1: list![42, 777],
-                l2: list![42],
-                expected: false,
-            },
+            Case { l1: Nil, l2: Nil, expected: true, },
+            Case { l1: list![42], l2: list![42], expected: true, },
+            Case { l1: list![42, 777], l2: list![42, 777], expected: true, },
+            Case { l1: list![42], l2: Nil, expected: false, },
+            Case { l1: Nil, l2: list![42], expected: false, },
+            Case { l1: list![42], l2: list![24], expected: false, },
+            Case { l1: list![42, 777], l2: list![42], expected: false, },
         ];
         for test_case in test_cases.iter() {
             let actual = test_case.l1 == test_case.l2;
@@ -236,22 +205,10 @@ mod tests {
             expected: u32
         }
         let test_cases = vec![
-            Case {
-                l: Nil,
-                expected: 0,
-            },
-            Case {
-                l: list![42],
-                expected: 1,
-            },
-            Case {
-                l: list![1,2],
-                expected: 2,
-            },
-            Case {
-                l: list![42,777,666],
-                expected: 3,
-            },
+            Case { l: Nil, expected: 0, },
+            Case { l: list![42], expected: 1, },
+            Case { l: list![1,2], expected: 2, },
+            Case { l: list![42,777,666], expected: 3, },
         ];
         for test_case in test_cases.iter() {
             let actual = test_case.l.length();
@@ -268,21 +225,9 @@ mod tests {
             expected: CircularList
         }
         let test_cases = vec![
-            Case {
-              l: list![],
-              i: 42,
-              expected: list![42]
-            },
-            Case {
-                l: list![777],
-                i: 42,
-                expected: list![42, 777]
-            },
-            Case {
-                l: list![1,2,3],
-                i: 4,
-                expected: list![4,1,2,3]
-            },
+            Case { l: list![], i: 42, expected: list![42] },
+            Case { l: list![777], i: 42, expected: list![42, 777] },
+            Case { l: list![1,2,3], i: 4, expected: list![4,1,2,3] },
         ];
         for test_case in test_cases.into_iter() {
             let actual = test_case.l.cons(test_case.i);
@@ -299,31 +244,11 @@ mod tests {
             expected: Option<i32>,
         }
         let test_cases = vec![
-            Case {
-                l: list![],
-                i: 0,
-                expected: None
-            },
-            Case {
-                l: list![1,2,3],
-                i: 0,
-                expected: Some(1)
-            },
-            Case {
-                l: list![1,2,3],
-                i: 1,
-                expected: Some(2)
-            },
-            Case {
-                l: list![1,2,3],
-                i: 2,
-                expected: Some(3)
-            },
-            Case {
-                l: list![1,2,3],
-                i: 3,
-                expected: None
-            },
+            Case { l: list![], i: 0, expected: None },
+            Case { l: list![1,2,3], i: 0, expected: Some(1) },
+            Case { l: list![1,2,3], i: 1, expected: Some(2) },
+            Case { l: list![1,2,3], i: 2, expected: Some(3) },
+            Case { l: list![1,2,3], i: 3, expected: None },
         ];
         for test_case in test_cases.into_iter() {
             let actual = test_case.l.get(test_case.i);
@@ -341,30 +266,10 @@ mod tests {
             expected: CircularList,
         }
         let test_cases = vec![
-            Case {
-                l: list![],
-                i: 0,
-                val: 42,
-                expected: list![]
-            },
-            Case {
-                l: list![0],
-                i: 0,
-                val: 42,
-                expected: list![42]
-            },
-            Case {
-                l: list![1,2,3,4],
-                i: 0,
-                val: 42,
-                expected: list![42,2,3,4]
-            },
-            Case {
-                l: list![1,2,3,4],
-                i: 2,
-                val: 42,
-                expected: list![1,2,42,4]
-            },
+            Case { l: list![], i: 0, val: 42, expected: list![] },
+            Case { l: list![0], i: 0, val: 42, expected: list![42] },
+            Case { l: list![1,2,3,4], i: 0, val: 42, expected: list![42,2,3,4] },
+            Case { l: list![1,2,3,4], i: 2, val: 42, expected: list![1,2,42,4] },
         ];
         for mut test_case in test_cases.into_iter() {
             test_case.l.set(test_case.i, test_case.val);
@@ -400,6 +305,26 @@ mod tests {
 
             let actual = ref_list.borrow().eq(&test_case.expected);
             assert!(actual);
+        }
+    }
+
+    #[test]
+    fn test_append() {
+        struct Case {
+            l: CircularList,
+            i: i32,
+            expected: CircularList,
+        }
+        let test_cases = vec![
+            Case { l: list![], i: 0, expected: list![0] },
+            Case { l: list![0], i: 1, expected: list![0, 1] },
+            Case { l: list![0,1], i: 2, expected: list![0, 1, 2] },
+            Case { l: list![0,1,2,3], i: 4, expected: list![0,1,2,3,4] },
+        ];
+        for mut test_case in test_cases.into_iter() {
+            test_case.l.append(test_case.i);
+
+            assert_eq!(test_case.expected, test_case.l);
         }
     }
 }
