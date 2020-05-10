@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::fmt;
-use std::borrow::BorrowMut;
 
 #[derive(Debug)]
 pub struct FancyInt {

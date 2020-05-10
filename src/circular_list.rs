@@ -1,9 +1,8 @@
 use crate::circular_list::CircularList::{Cons, Nil};
 use std::rc::Rc;
-use std::cell::{RefCell, Ref};
+use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
 use std::fmt;
-use std::borrow::BorrowMut;
 
 #[derive(Debug)]
 pub enum CircularList{
@@ -93,22 +92,30 @@ impl CircularList {
         }
     }
 
-    pub fn del_second(&mut self) {
-        match self {
+    pub fn del(ref_list: &mut Rc<RefCell<CircularList>>, index: u32) {
+        if index == 0 {
+            let maybe_next_tail_clone: Option<Rc<RefCell<CircularList>>> = ref_list.borrow().tail().map(Rc::clone);
+            if let Some(tail_clone) = maybe_next_tail_clone {
+                *ref_list = tail_clone
+            }
+        } else {
+            CircularList::delete_from_tail(ref_list, index);
+        }
+    }
+
+    fn delete_from_tail(ref_list: &mut Rc<RefCell<CircularList>>, index: u32) {
+        let list: &mut CircularList = &mut ref_list.as_ref().borrow_mut();
+        match list {
             Nil => (),
-            Cons(_, tail) => {
-                let maybe_next_tail: Option<Rc<RefCell<CircularList>>> = {
-                    let tail_list: &CircularList = &tail.as_ref().borrow();
-                    match tail_list {
-                        Cons(_, next_tail) => {
-                            Some(Rc::clone(next_tail))
-                        },
-                        _ => None
+            Cons(_, tail) => match index {
+                0 => panic!("should not call with index = 0"),
+                1 => {
+                    let maybe_next_tail_clone: Option<Rc<RefCell<CircularList>>> = tail.borrow().tail().map(Rc::clone);
+                    if let Some(tail_clone) = maybe_next_tail_clone {
+                        *tail = tail_clone
                     }
-                };
-                if let Some(next_tail) = maybe_next_tail {
-                    *tail = next_tail;
-                }
+                },
+                _=> CircularList::delete_from_tail(tail, index - 1)
             }
         }
     }
@@ -363,6 +370,36 @@ mod tests {
             test_case.l.set(test_case.i, test_case.val);
 
             assert_eq!(test_case.expected, test_case.l)
+        }
+    }
+
+    #[test]
+    fn test_del() {
+        struct Case {
+            l: CircularList,
+            i: u32,
+            expected: CircularList,
+        }
+        let test_cases = vec![
+            Case { l: list![], i: 0, expected: list![] },
+            Case { l: list![], i: 1, expected: list![] },
+            Case { l: list![], i: 2, expected: list![] },
+            Case { l: list![0], i: 0, expected: list![] },
+            Case { l: list![0], i: 1, expected: list![0] },
+            Case { l: list![0], i: 2, expected: list![0] },
+            Case { l: list![1,2], i: 0, expected: list![2] },
+            Case { l: list![1,2], i: 1, expected: list![1] },
+            Case { l: list![1,2,3], i: 0, expected: list![2,3] },
+            Case { l: list![1,2,3], i: 1, expected: list![1,3] },
+            Case { l: list![1,2,3], i: 2, expected: list![1,2] },
+        ];
+        for test_case in test_cases.into_iter() {
+            let mut ref_list = Rc::new(RefCell::new(test_case.l));
+
+            CircularList::del(&mut ref_list, test_case.i);
+
+            let actual = ref_list.borrow().eq(&test_case.expected);
+            assert!(actual);
         }
     }
 }
