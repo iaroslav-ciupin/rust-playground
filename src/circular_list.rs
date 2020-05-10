@@ -25,7 +25,7 @@ impl PartialEq for CircularList {
             Cons(i, tail) => match other {
                 Nil => false,
                 Cons(j, other_tail) =>
-                    i == j && tail.as_ref().borrow().eq(&other_tail.as_ref().borrow())
+                    i == j && tail.borrow().eq(&other_tail.borrow())
             }
         }
     }
@@ -36,7 +36,7 @@ impl fmt::Display for CircularList {
         match self {
             Nil => write!(f, "nil"),
             Cons(i, next) => {
-                let tail = next.as_ref().borrow();
+                let tail = next.borrow();
                 write!(f, "{},{}", i, tail)
             }
         }
@@ -69,7 +69,7 @@ impl CircularList {
     pub fn length(&self) -> u32 {
         match self {
             Nil => 0,
-            Cons(_, tail) => 1 + tail.as_ref().borrow().length()
+            Cons(_, tail) => 1 + tail.borrow().length()
         }
     }
 
@@ -78,7 +78,7 @@ impl CircularList {
             Nil => None,
             Cons(i, tail) => match index {
                 0 => Some(*i),
-                _ => tail.as_ref().borrow().get(index - 1),
+                _ => tail.borrow().get(index - 1),
             }
         }
     }
