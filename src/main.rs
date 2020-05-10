@@ -6,12 +6,21 @@ use circular_list::*;
 mod play_refcell;
 use play_refcell::*;
 use crate::circular_list::CircularList::{Cons, Nil};
+use std::convert::TryInto;
 
 fn main() {
+    // let rr = rc::Rc::new(42);
+    // {
+    //     let rr1 = rc::Rc::downgrade(&rr);
+    // }
+    // let rrr: i32 = rc::try_unwrap(rr).unwrap();
+    // println!("rrr {}", rrr);
+
+    let s = String::from("Valera");
     let c1 = Rc::new(RefCell::new(String::from("Jora")));
     let c2 = Rc::clone(&c1);
     println!("{:?}", c2);
-    *c1.borrow_mut() = String::from("Valera");
+    *c1.borrow_mut() = s;
     println!("{:?}", c2);
 
     let l1 = Rc::new(RefCell::new(list![1,2,3]));
@@ -23,12 +32,9 @@ fn main() {
     println!("L1: {}", l1.borrow());
     println!("L1 tail: {}", l1.borrow().tail().unwrap().borrow());
 
-    //let l = l1.as_ref().borrow_mut();
-    //let mut tail = l.tail().unwrap().as_ref().borrow_mut();
-    //*tail = Cons(666, Rc::new(RefCell::new(Nil)));
-    //drop(tail);
-   // let l1 = Rc::clone();
-    //println!("L1: {}", l1.as_ref().borrow());
+    l1.borrow_mut().del_second();
+    println!("L1 after deleting second: {}", l1.borrow());
+
     let f = FancyInt::new(42);
     println!("{}", f);
     f.set(777);

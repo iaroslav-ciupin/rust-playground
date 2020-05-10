@@ -1,5 +1,5 @@
 use crate::circular_list::CircularList::{Cons, Nil};
-use std::rc::{Rc, Weak};
+use std::rc::Rc;
 use std::cell::{RefCell, Ref};
 use std::fmt::{Debug, Formatter};
 use std::fmt;
@@ -93,6 +93,26 @@ impl CircularList {
         }
     }
 
+    pub fn del_second(&mut self) {
+        match self {
+            Nil => (),
+            Cons(_, tail) => {
+                let maybe_next_tail: Option<Rc<RefCell<CircularList>>> = {
+                    let tail_list: &CircularList = &tail.as_ref().borrow();
+                    match tail_list {
+                        Cons(_, next_tail) => {
+                            Some(Rc::clone(next_tail))
+                        },
+                        _ => None
+                    }
+                };
+                if let Some(next_tail) = maybe_next_tail {
+                    *tail = next_tail;
+                }
+            }
+        }
+    }
+
     pub fn clear(&mut self) {
         *self = Nil
     }
@@ -102,10 +122,15 @@ impl CircularList {
 macro_rules! list {
     ( $( $x:expr ),* ) => {
         {
-            let temp_list = CircularList::new();
+            let mut temp_vec = Vec::new();
             $(
-                let temp_list = temp_list.cons($x);
+                temp_vec.push($x);
             )*
+            temp_vec.reverse();
+            let mut temp_list = CircularList::new();
+            for item in temp_vec.into_iter() {
+                temp_list = temp_list.cons(item);
+            }
             temp_list
         }
     };
@@ -131,8 +156,12 @@ mod tests {
                 expected: "1,nil",
             },
             Case {
-                l: list![2,1],
+                l: list![1,2],
                 expected: "1,2,nil",
+            },
+            Case {
+                l: list![1,2,3],
+                expected: "1,2,3,nil",
             }
         ];
         for test_case in test_cases.iter() {
@@ -205,21 +234,15 @@ mod tests {
                 expected: 0,
             },
             Case {
-                l: Cons(42, Rc::new(RefCell::new(Nil))),
+                l: list![42],
                 expected: 1,
             },
             Case {
-                l: Cons(1, Rc::new(RefCell::new(
-                    Cons(1, Rc::new(RefCell::new(Nil)))
-                ))),
+                l: list![1,2],
                 expected: 2,
             },
             Case {
-                l: Cons(1, Rc::new(RefCell::new(
-                    Cons(1, Rc::new(RefCell::new(
-                        Cons(1, Rc::new(RefCell::new(Nil)))
-                    )))
-                ))),
+                l: list![42,777,666],
                 expected: 3,
             },
         ];
@@ -246,12 +269,12 @@ mod tests {
             Case {
                 l: list![777],
                 i: 42,
-                expected: list![777, 42]
+                expected: list![42, 777]
             },
             Case {
                 l: list![1,2,3],
                 i: 4,
-                expected: list![1,2,3,4]
+                expected: list![4,1,2,3]
             },
         ];
         for test_case in test_cases.into_iter() {
@@ -277,7 +300,7 @@ mod tests {
             Case {
                 l: list![1,2,3],
                 i: 0,
-                expected: Some(3)
+                expected: Some(1)
             },
             Case {
                 l: list![1,2,3],
@@ -287,7 +310,7 @@ mod tests {
             Case {
                 l: list![1,2,3],
                 i: 2,
-                expected: Some(1)
+                expected: Some(3)
             },
             Case {
                 l: list![1,2,3],
@@ -327,13 +350,13 @@ mod tests {
                 l: list![1,2,3,4],
                 i: 0,
                 val: 42,
-                expected: list![1,2,3,42]
+                expected: list![42,2,3,4]
             },
             Case {
                 l: list![1,2,3,4],
                 i: 2,
                 val: 42,
-                expected: list![1,42,3,4]
+                expected: list![1,2,42,4]
             },
         ];
         for mut test_case in test_cases.into_iter() {
