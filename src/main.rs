@@ -3,6 +3,7 @@ use std::cell::{RefCell, Ref};
 
 mod circular_list;
 use circular_list::*;
+mod play_refcell;
 use crate::circular_list::CircularList::{Cons, Nil};
 
 fn main() {
@@ -27,4 +28,8 @@ fn main() {
     //drop(tail);
    // let l1 = Rc::clone();
     //println!("L1: {}", l1.as_ref().borrow());
+    let f = play_refcell::FancyInt::new(42);
+    println!("{}", f);
+    f.set(777);
+    println!("{}", f);
 }
