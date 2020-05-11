@@ -1,12 +1,9 @@
-use std::rc::{Rc, Weak};
-use std::cell::RefCell;
-
 mod circular_list;
 use circular_list::*;
 
 fn main() {
     let mut l1 = list![1,2,3,4];
-    let mut l2 = l1.clone();
+    let l2 = l1.clone();
 
     println!("l1: {}", l1);
     println!("l2: {}", l2);

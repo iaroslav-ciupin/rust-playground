@@ -1,17 +1,19 @@
 use crate::circular_list::Node::{Cons, Nil};
 use std::rc::{Rc, Weak};
 use std::cell::RefCell;
-use std::fmt::{Debug, Formatter};
+use std::fmt::{Debug, Formatter, Display};
 use std::fmt;
 use std::ops::Deref;
 
 #[derive(Debug)]
-pub enum Node {
-    Nil(RefCell<Weak<RefCell<Node>>>),
-    Cons(i32, Rc<RefCell<Node>>)
+pub enum Node<T>
+    where T: Copy + Clone + PartialEq + Display {
+    Nil(RefCell<Weak<RefCell<Node<T>>>>),
+    Cons(T, Rc<RefCell<Node<T>>>)
 }
 
-impl PartialEq for Node {
+impl<T> PartialEq for Node<T>
+    where T: Copy + Clone + PartialEq + Display {
     fn eq(&self, other: &Self) -> bool {
         match self {
             Nil(_) => if let Nil(_) = other {
@@ -28,11 +30,12 @@ impl PartialEq for Node {
     }
 }
 
-impl fmt::Display for Node {
+impl<T> fmt::Display for Node<T>
+    where T: Copy + Clone + PartialEq + Display {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Nil(cycle) => match cycle.borrow().upgrade() {
-                Some(head) => write!(f, "⟲"),
+                Some(_) => write!(f, "⟲"),
                 _ => write!(f, "⏚")
             },
             Cons(i, next) => {
@@ -43,12 +46,13 @@ impl fmt::Display for Node {
     }
 }
 
-impl Node {
-    pub fn new() -> Node {
+impl<T> Node<T>
+    where T: Copy + Clone + PartialEq + Display {
+    pub fn new() -> Node<T> {
         Nil(RefCell::new(Weak::new()))
     }
 
-    pub fn from_vec(v: Vec<i32>) -> Node {
+    pub fn from_vec(v: Vec<T>) -> Node<T> {
         let mut list = Node::new();
         for item in v.into_iter().rev() {
             list = list.cons(item);
@@ -56,18 +60,18 @@ impl Node {
         list
     }
 
-    pub fn cons(self, i: i32) -> Node {
+    pub fn cons(self, i: T) -> Node<T> {
         Cons(i, Rc::new(RefCell::new(self)))
     }
 
-    pub fn head(&self) -> Option<i32> {
+    pub fn head(&self) -> Option<T> {
         match self {
             Cons(i, _) => Some(*i),
             _ => None,
         }
     }
 
-    pub fn tail(&self) -> Option<&Rc<RefCell<Node>>> {
+    pub fn tail(&self) -> Option<&Rc<RefCell<Node<T>>>> {
         match self {
             Cons(_, tail) => Some(tail),
             _ => None,
@@ -81,29 +85,20 @@ impl Node {
         }
     }
 
-    pub fn get(&self, index: u32) -> Option<i32> {
+    pub fn get(&self, index: u32) -> Option<T> {
         match self {
             Cons(i, tail) => match index {
-                0 => {
-                    //println!("found at index = {}", index);
-                    Some(*i)
-                },
-                _ => {
-                    //println!("get.cons index = {}", index);
-                    tail.borrow().get(index - 1)
-                },
+                0 => Some(*i),
+                _ => tail.borrow().get(index - 1),
             },
             Nil(cycle) => match cycle.borrow().upgrade() {
-                Some(head) => {
-                    //println!("get.nil index = {}", index);
-                    head.borrow().get(index)
-                },
+                Some(head) => head.borrow().get(index),
                 _ => None
             }
         }
     }
 
-    pub fn set(&mut self, index: u32, val: i32) {
+    pub fn set(&mut self, index: u32, val: T) {
         match self {
             Cons(i, tail) => match index {
                 0 => *i = val,
@@ -113,14 +108,14 @@ impl Node {
         }
     }
 
-    pub fn del(ref_list: &mut Rc<RefCell<Node>>, index: u32) {
+    pub fn del(ref_list: &mut Rc<RefCell<Node<T>>>, index: u32) {
         if index == 0 {
-            let maybe_next_tail_clone: Option<Rc<RefCell<Node>>> = ref_list.borrow().tail().map(Rc::clone);
+            let maybe_next_tail_clone: Option<Rc<RefCell<Node<T>>>> = ref_list.borrow().tail().map(Rc::clone);
             if let Some(tail_clone) = maybe_next_tail_clone {
                 *ref_list = tail_clone
             }
         } else {
-            let list: &mut Node = &mut ref_list.as_ref().borrow_mut();
+            let list: &mut Node<T> = &mut ref_list.as_ref().borrow_mut();
             list.delete_from_tail(index);
         }
     }
@@ -130,7 +125,7 @@ impl Node {
             Cons(_, tail) => match index {
                 0 => panic!("should not call with index = 0"),
                 1 => {
-                    let maybe_next_tail_clone: Option<Rc<RefCell<Node>>> = tail.borrow().tail().map(Rc::clone);
+                    let maybe_next_tail_clone: Option<Rc<RefCell<Node<T>>>> = tail.borrow().tail().map(Rc::clone);
                     if let Some(tail_clone) = maybe_next_tail_clone {
                         *tail = tail_clone
                     }
@@ -145,7 +140,7 @@ impl Node {
         *self = Node::new()
     }
 
-    pub fn append(&mut self, i: i32) {
+    pub fn append(&mut self, i: T) {
         match self {
             Nil(_) => *self = Cons(i, Rc::new(RefCell::new(Node::new()))),
             Cons(_, tail) => {
@@ -154,11 +149,11 @@ impl Node {
         }
     }
 
-    pub fn save_cycle(ref_list: &Rc<RefCell<Node>>) {
+    pub fn save_cycle(ref_list: &Rc<RefCell<Node<T>>>) {
         ref_list.borrow().find_and_save_cycle(ref_list);
     }
 
-    fn find_and_save_cycle(&self, head: &Rc<RefCell<Node>>) {
+    fn find_and_save_cycle(&self, head: &Rc<RefCell<Node<T>>>) {
         match self {
             Nil(cycle) =>
                 *cycle.borrow_mut() = Rc::downgrade(head),
@@ -168,56 +163,61 @@ impl Node {
     }
 }
 
-pub struct CircularList(Rc<RefCell<Node>>);
+pub struct CircularList<T>(Rc<RefCell<Node<T>>>)
+    where T: Copy + Clone + PartialEq + Display;
 
-impl fmt::Display for CircularList {
+impl<T> fmt::Display for CircularList<T>
+    where T: Copy + Clone + PartialEq + Display {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0.borrow())
     }
 }
 
-impl PartialEq for CircularList {
+impl<T> PartialEq for CircularList<T>
+    where T: Copy + Clone + PartialEq + Display {
     fn eq(&self, other: &Self) -> bool {
-        let first: &Node = &self.0.borrow();
-        let second: &Node = &other.0.borrow();
+        let first: &Node<T> = &self.0.borrow();
+        let second: &Node<T> = &other.0.borrow();
         first == second
     }
 }
 
-pub struct CircularListIterator<'a> {
-    list: &'a CircularList,
+pub struct CircularListIterator<'a, T: Copy + Clone + PartialEq + Display> {
+    list: &'a CircularList<T>,
     index: u32,
 }
 
-impl Iterator for CircularListIterator<'_> {
-    type Item = i32;
+impl<T> Iterator for CircularListIterator<'_, T>
+    where T: Copy + Clone + PartialEq + Display {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let node: &Node = &self.list.0.borrow();
+        let node: &Node<T> = &self.list.0.borrow();
         let result = node.get(self.index);
         self.index += 1;
         result
     }
 }
 
-impl CircularList {
-    pub fn new() -> CircularList {
+impl<T> CircularList<T>
+    where T: Copy + Clone + PartialEq + Display {
+    pub fn new() -> CircularList<T> {
         CircularList(Rc::new(RefCell::new(Node::new())))
     }
 
-    pub fn from_vec(v: Vec<i32>) -> CircularList {
+    pub fn from_vec(v: Vec<T>) -> CircularList<T> {
         let node = Node::from_vec(v);
         CircularList(Rc::new(RefCell::new(node)))
     }
 
     pub fn del(&mut self, index: u32) {
         if index == 0 {
-            let maybe_next_tail_clone: Option<Rc<RefCell<Node>>> = self.0.borrow().tail().map(Rc::clone);
+            let maybe_next_tail_clone: Option<Rc<RefCell<Node<T>>>> = self.0.borrow().tail().map(Rc::clone);
             if let Some(tail_clone) = maybe_next_tail_clone {
                 *self = CircularList(tail_clone)
             }
         } else {
-            let node: &mut Node = &mut self.0.as_ref().borrow_mut();
+            let node: &mut Node<T> = &mut self.0.as_ref().borrow_mut();
             node.delete_from_tail(index);
         }
     }
@@ -226,7 +226,7 @@ impl CircularList {
         self.0.borrow().find_and_save_cycle(self);
     }
 
-    pub fn iter(&self) -> CircularListIterator {
+    pub fn iter(&self) -> CircularListIterator<T> {
         CircularListIterator {
             list: self,
             index: 0,
@@ -234,14 +234,16 @@ impl CircularList {
     }
 }
 
-impl Clone for CircularList {
+impl<T> Clone for CircularList<T>
+    where T: Copy + Clone + PartialEq + Display {
     fn clone(&self) -> Self {
         CircularList(Rc::clone(self))
     }
 }
 
-impl Deref for CircularList {
-    type Target = Rc<RefCell<Node>>;
+impl<T> Deref for CircularList<T>
+    where T: Copy + Clone + PartialEq + Display {
+    type Target = Rc<RefCell<Node<T>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -281,7 +283,7 @@ mod tests {
     #[test]
     fn test_display() {
         struct Case<'a> {
-            l: Node,
+            l: Node<i32>,
             expected: &'a str
         }
         let test_cases = vec![
@@ -300,8 +302,8 @@ mod tests {
     #[test]
     fn test_eq() {
         struct Case {
-            l1: Node,
-            l2: Node,
+            l1: Node<i32>,
+            l2: Node<i32>,
             expected: bool
         }
         let test_cases = vec![
@@ -323,7 +325,7 @@ mod tests {
     #[test]
     fn test_length() {
         struct Case {
-            l: Node,
+            l: Node<i32>,
             expected: u32
         }
         let test_cases = vec![
@@ -342,9 +344,9 @@ mod tests {
     #[test]
     fn test_cons() {
         struct Case {
-            l: Node,
+            l: Node<i32>,
             i: i32,
-            expected: Node
+            expected: Node<i32>
         }
         let test_cases = vec![
             Case { l: node![], i: 42, expected: node![42] },
@@ -361,7 +363,7 @@ mod tests {
     #[test]
     fn test_get() {
         struct Case {
-            l: Node,
+            l: Node<i32>,
             i: u32,
             expected: Option<i32>,
         }
@@ -382,10 +384,10 @@ mod tests {
     #[test]
     fn test_set() {
         struct Case {
-            l: Node,
+            l: Node<i32>,
             i: u32,
             val: i32,
-            expected: Node,
+            expected: Node<i32>,
         }
         let test_cases = vec![
             Case { l: node![], i: 0, val: 42, expected: node![] },
@@ -403,9 +405,9 @@ mod tests {
     #[test]
     fn test_del() {
         struct Case {
-            l: Node,
+            l: Node<i32>,
             i: u32,
-            expected: Node,
+            expected: Node<i32>,
         }
         let test_cases = vec![
             Case { l: node![], i: 0, expected: node![] },
@@ -433,9 +435,9 @@ mod tests {
     #[test]
     fn test_append() {
         struct Case {
-            l: Node,
+            l: Node<i32>,
             i: i32,
-            expected: Node,
+            expected: Node<i32>,
         }
         let test_cases = vec![
             Case { l: node![], i: 0, expected: node![0] },
