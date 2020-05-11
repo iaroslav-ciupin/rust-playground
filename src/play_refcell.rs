@@ -12,6 +12,12 @@ impl fmt::Display for FancyInt {
     }
 }
 
+impl Drop for FancyInt {
+    fn drop(&mut self) {
+        println!("Dropping {:?}", self)
+    }
+}
+
 impl FancyInt {
     pub fn new(i: i32) -> FancyInt {
         FancyInt {
