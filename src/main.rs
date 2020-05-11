@@ -1,28 +1,27 @@
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::cell::RefCell;
 
 mod circular_list;
 use circular_list::*;
-mod play_refcell;
-use play_refcell::*;
 
 fn main() {
-    let mut l1 = Rc::new(RefCell::new(list![1,2,3]));
-    let mut l2 = Rc::clone(&l1);
+    let mut l1 = list![1,2,3,4];
+    let mut l2 = l1.clone();
 
-    println!("l1: {}, count l1: {}", l1.borrow(), Rc::strong_count(&l1));
-    println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
-    println!();
+    println!("l1: {}", l1);
+    println!("l2: {}", l2);
 
     println!("deleting l1 first");
-    CircularList::del(&mut l1, 0);
-
+    l1.del(0);
+    println!("setting cycle");
+    l1.save_cycle();
     println!();
-    println!("l1: {}, count l1: {}", l1.borrow(), Rc::strong_count(&l1));
-    println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
 
-    l2.borrow_mut().append(42);
-    println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
-    l2.borrow_mut().delete_from_tail(2);
-    println!("l2: {}, count l2: {}", l2.borrow(), Rc::strong_count(&l2));
+    println!("n elements from circular l1:");
+    for i in l1.iter().take(12) {
+        println!("{}", i);
+    }
+
+    println!("l1: {}", l1);
+    println!("l2: {}", l2);
 }
