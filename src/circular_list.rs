@@ -46,6 +46,7 @@ impl<T> fmt::Display for Node<T>
     }
 }
 
+#[allow(dead_code)]
 impl<T> Node<T>
     where T: Copy + Clone + PartialEq + Display {
     pub fn new() -> Node<T> {
@@ -201,15 +202,19 @@ impl<T> Iterator for CircularListIterator<'_, T>
 
 impl<T> CircularList<T>
     where T: Copy + Clone + PartialEq + Display {
+
+    #[allow(dead_code)]
     pub fn new() -> CircularList<T> {
         CircularList(Rc::new(RefCell::new(Node::new())))
     }
 
+    #[allow(dead_code)]
     pub fn from_vec(v: Vec<T>) -> CircularList<T> {
         let node = Node::from_vec(v);
         CircularList(Rc::new(RefCell::new(node)))
     }
 
+    #[allow(dead_code)]
     pub fn del(&mut self, index: u32) {
         if index == 0 {
             let maybe_next_tail_clone: Option<Rc<RefCell<Node<T>>>> = self.0.borrow().tail().map(Rc::clone);
@@ -222,10 +227,12 @@ impl<T> CircularList<T>
         }
     }
 
+    #[allow(dead_code)]
     pub fn save_cycle(&self) {
         self.0.borrow().find_and_save_cycle(self);
     }
 
+    #[allow(dead_code)]
     pub fn iter(&self) -> CircularListIterator<T> {
         CircularListIterator {
             list: self,
