@@ -32,13 +32,14 @@ impl Crawler {
 
     fn find_urls(&self, s: &String) -> HashSet<String> {
         self.finder.links(s.as_str()).map(|i|String::from(i.as_str())).collect()
+        // TODO filter only same-domain URLs
     }
 
-    pub async fn crawl(&self, url: String, word: &String, _depth: u8) -> CrawlResult {
+    pub async fn crawl(&self, url: String, word: &String, _max_pages: u32) -> CrawlResult {
         let mut visited_urls = HashSet::new();
         let mut to_visit: HashSet<String> = [url].iter().cloned().collect();
         let mut total: usize = 0;
-        for _ in 1..=1 {
+        for _ in 1..=2 {
             let result = self.crawl_urls(&to_visit, word).await;
             for url in to_visit {
                 visited_urls.insert(url);
@@ -56,14 +57,20 @@ impl Crawler {
 
     async fn crawl_urls(&self, urls: &HashSet<String>, word: &String) -> CrawlResult {
         let mut final_result = CrawlResult::default();
+        let mut result_futures = vec![];
         for url in urls {
-            let result = self.crawl_url(url, word).await;
+            result_futures.push(self.crawl_url(url, word));
+        }
+        let results: Vec<Result<CrawlResult, String>> = futures::future::join_all(result_futures).await;
+        for result in results {
             match result {
                 Ok(crawl_result) => {
-                    println!("{}: {} words and {} urls", url, crawl_result.word_count, crawl_result.urls.len());
+                    println!("found {} words and {} urls", crawl_result.word_count, crawl_result.urls.len());
                     final_result += crawl_result;
                 },
-                Err(msg) => eprintln!("{}: error - {}", url, msg)
+                Err(msg) => {
+                    //eprintln!("error: {}", msg)
+                }
             }
         }
         final_result
@@ -72,7 +79,6 @@ impl Crawler {
     async fn crawl_url(&self, url: &String, word: &String) -> Result<CrawlResult, String> {
         let response = reqwest::get(url.as_str()).await.map_err(|e|e.to_string())?;
         if response.status() != 200 {
-            println!("Bad status: {}", response.status());
             return Err(format!("status: {}", response.status()))
         }
 
