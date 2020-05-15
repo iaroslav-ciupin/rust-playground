@@ -1,6 +1,8 @@
 use linkify::LinkFinder;
 use std::collections::HashSet;
 use std::ops::{Add, AddAssign};
+use std::hash::Hash;
+use url::Url;
 
 pub struct Crawler {
     finder: LinkFinder,
@@ -21,26 +23,30 @@ impl AddAssign for CrawlResult {
     }
 }
 
-pub struct CrawlErr {
-    msg: String,
-}
-
 impl Crawler {
     pub fn new() -> Crawler {
         Crawler { finder: LinkFinder::new() }
     }
 
-    fn find_urls(&self, s: &String) -> HashSet<String> {
-        self.finder.links(s.as_str()).map(|i|String::from(i.as_str())).collect()
-        // TODO filter only same-domain URLs
+    fn find_urls(&self, s: &String, domain: &String) -> HashSet<String> {
+        self.finder
+            .links(s.as_str())
+            .filter(|l| {
+                Url::parse(l.as_str())
+                    .ok()
+                    .and_then(|url| url.domain().map(|d|d.to_string()))
+                    .map_or(false, |d| d.ends_with(domain) )
+            })
+            .map(|i|String::from(i.as_str()))
+            .collect()
     }
 
-    pub async fn crawl(&self, url: String, word: &String, _max_pages: u32) -> CrawlResult {
+    pub async fn crawl(&self, url: String, domain: &String, word: &String, _max_pages: u32) -> CrawlResult {
         let mut visited_urls = HashSet::new();
         let mut to_visit: HashSet<String> = [url].iter().cloned().collect();
         let mut total: usize = 0;
         for _ in 1..=2 {
-            let result = self.crawl_urls(&to_visit, word).await;
+            let result = self.crawl_urls(&to_visit, domain, word).await;
             for url in to_visit {
                 visited_urls.insert(url);
             }
@@ -55,11 +61,11 @@ impl Crawler {
         }
     }
 
-    async fn crawl_urls(&self, urls: &HashSet<String>, word: &String) -> CrawlResult {
+    async fn crawl_urls(&self, urls: &HashSet<String>, domain: &String, word: &String) -> CrawlResult {
         let mut final_result = CrawlResult::default();
         let mut result_futures = vec![];
         for url in urls {
-            result_futures.push(self.crawl_url(url, word));
+            result_futures.push(self.crawl_url(url, domain, word));
         }
         let results: Vec<Result<CrawlResult, String>> = futures::future::join_all(result_futures).await;
         for result in results {
@@ -76,16 +82,15 @@ impl Crawler {
         final_result
     }
 
-    async fn crawl_url(&self, url: &String, word: &String) -> Result<CrawlResult, String> {
+    async fn crawl_url(&self, url: &String, domain: &String, word: &String) -> Result<CrawlResult, String> {
         let response = reqwest::get(url.as_str()).await.map_err(|e|e.to_string())?;
         if response.status() != 200 {
             return Err(format!("status: {}", response.status()))
         }
 
         let html: String = response.text().await.map_err(|e|e.to_string())?;
-
         let word_count = num_occurrences(&html, word);
-        let urls = self.find_urls(&html);
+        let urls = self.find_urls(&html, domain);
 
         Ok(CrawlResult{ word_count, urls })
     }
@@ -122,15 +127,28 @@ mod tests {
             <head>Welcome to foo.com</head>
             <body>
                 <h1>www.bar.com is here</h1>Foo foo foo, com com .com
+                <p>
+                    http://example.com/v3
+                </p>
+                <p>
+                    https://subdomain.example.com
+                </p>
             </body>
             http://example.com
             https://aws.amazon.com/jora/valerich
+            https://foo.bar/
+            http://example.com/v2/jora
             Covid
         </html>"#;
-        let expected = vec!["http://example.com", "https://aws.amazon.com/jora/valerich"];
-        let expected: Vec<String> = expected.into_iter().map(String::from).collect();
+        let expected: HashSet<&str>  = [
+            "http://example.com/v3",
+            "https://subdomain.example.com",
+            "http://example.com",
+            "http://example.com/v2/jora"
+        ].iter().cloned().collect();
+        let expected: HashSet<String> = expected.into_iter().map(String::from).collect();
         let crawler = Crawler{ finder: LinkFinder::new() };
 
-        assert_eq!(expected, crawler.find_urls(&s.to_string()));
+        assert_eq!(expected, crawler.find_urls(&s.to_string(), &"example.com".to_string()));
     }
 }
